@@ -1,0 +1,134 @@
+'use client'
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Menu, X, Heart } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+// import CalmeLogo from "../../../assets/calme-logo.png"; Adjust the path as necessary
+
+const Navbar: React.FC = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const pathname = usePathname();
+
+  const toggleMenu = () => setIsOpen(!isOpen);
+  const closeMenu = () => setIsOpen(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const isScrolled = window.scrollY > 10;
+      if (isScrolled !== scrolled) {
+        setScrolled(isScrolled);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [scrolled]);
+
+  const navLinks = [
+    { path: "/", label: "Home" },
+    { path: "/about", label: "About" },
+    { path: "/programs", label: "Programs" },
+    { path: "/resources", label: "Resources" },
+    { path: "/news", label: "News" },
+    // { path: "/book-appointment", label: "Book Appointment" },
+    { path: "/contact", label: "Contact" },
+  ];
+
+  return (
+    <nav
+      className={`fixed w-full top-0 z-50 transition-all duration-300 ${
+        scrolled ? "bg-white shadow-md py-2" : "bg-transparent py-4"
+      }`}
+    >
+      <div className="container flex items-center justify-between">
+        <Link
+          href="/"
+          className="flex items-center space-x-2"
+          onClick={closeMenu}
+        >
+          <Heart className="w-8 h-8 text-primary-600" />
+
+          <span className="text-2xl font-bold text-primary-700">Calme</span>
+          {/* Uncomment the line below to include the logo image  */}
+          {/* <img
+            src={CalmeLogo}
+            alt="Cal-me Logo"
+            className="w-8 h-8 object-contain"
+          /> */}
+        </Link>
+
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center space-x-8">
+          {navLinks.map((link) => (
+            <Link
+              key={link.path}
+              href={link.path}
+              className={`font-medium hover:text-primary-600 transition-colors ${
+                pathname === link.path
+                  ? "text-primary-600"
+                  : "text-neutral-700"
+              }`}
+            >
+              {link.label}
+            </Link>
+          ))}
+          {/* <Link to="/donate" className="btn-primary">
+            Donate
+          </Link> */}
+        </div>
+
+        {/* Mobile Navigation Button */}
+        <button
+          className="md:hidden text-neutral-700 focus:outline-none"
+          onClick={toggleMenu}
+          aria-label={isOpen ? "Close menu" : "Open menu"}
+        >
+          {isOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      </div>
+
+      {/* Mobile Navigation Menu */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="md:hidden bg-white shadow-lg overflow-hidden"
+          >
+            <div className="container py-4 flex flex-col space-y-4">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  href={link.path}
+                  className={`font-medium hover:text-primary-600 transition-colors px-4 py-2 rounded-md ${
+                    pathname === link.path
+                      ? "text-primary-600 bg-primary-50"
+                      : "text-neutral-700"
+                  }`}
+                  onClick={closeMenu}
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <Link
+                href="/donate"
+                className="btn-primary mx-4"
+                onClick={closeMenu}
+              >
+                Donate
+              </Link>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </nav>
+  );
+};
+
+export default Navbar;

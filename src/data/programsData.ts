@@ -1,0 +1,52 @@
+import { Program } from '../types';
+
+export const programsData: Program[] = [
+  {
+    id: '1',
+    title: 'Mental Health Awareness Workshop',
+    date: '2024-09-15',
+    description: 'A comprehensive workshop focusing on mental health awareness, stigma reduction, and practical self-care strategies for everyday life.',
+    imageUrl: 'https://images.pexels.com/photos/7176319/pexels-photo-7176319.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+    location: 'Community Center, Downtown',
+    isUpcoming: true,
+  },
+  {
+    id: '2',
+    title: 'Youth Mental Health First Aid',
+    date: '2024-10-20',
+    description: 'Training program designed to teach parents, family members, and caregivers how to help adolescents who are developing a mental health problem or experiencing a mental health crisis.',
+    imageUrl: 'https://images.pexels.com/photos/8942941/pexels-photo-8942941.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+    location: 'Cal-me Headquarters',
+    isUpcoming: true,
+  },
+  {
+    id: '3',
+    title: 'Workplace Wellness Summit',
+    date: '2024-04-10',
+    description: 'A conference for employers and HR professionals focused on creating mentally healthy workplaces and supporting employee wellbeing.',
+    imageUrl: 'https://images.pexels.com/photos/3184396/pexels-photo-3184396.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+    videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+    location: 'Grand Hotel Conference Center',
+    isUpcoming: false,
+  },
+  {
+    id: '4',
+    title: 'Anxiety Management Series',
+    date: '2024-03-05',
+    description: 'A six-week program teaching evidence-based techniques for managing anxiety, including cognitive behavioral strategies and mindfulness practices.',
+    imageUrl: 'https://images.pexels.com/photos/3755755/pexels-photo-3755755.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+    videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+    location: 'Cal-me Therapy Center',
+    isUpcoming: false,
+  },
+  {
+    id: '5',
+    title: 'Community Mental Health Fair',
+    date: '2024-02-18',
+    description: 'A free public event featuring information booths, screenings, workshops, and resources from local mental health service providers.',
+    imageUrl: 'https://images.pexels.com/photos/7648042/pexels-photo-7648042.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+    videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+    location: 'City Park',
+    isUpcoming: false,
+  },
+];

@@ -1,9 +1,23 @@
-import Link from "next/link";
 
-import { LatestPost } from "@/app/_components/post";
-import { api, HydrateClient } from "@/trpc/server";
+import Hero from "@/components/home/Hero";
+import AboutSection from "@/components/home/AboutSection";
+import FeaturedResources from "@/components/home/FeaturedResources";
+import BookingPreview from "@/components/home/BookingPreview";
+import UpcomingPrograms from "@/components/home/UpcomingPrograms";
+import Testimonials from "@/components/home/Testimonials";
+import Partners from "@/components/home/Partners";
+import LatestNews from "@/components/home/LatestNews";
 
 export default async function Home() {
  
-  return <h1>Hello World</h1>
+  return <>
+      <Hero />
+      <AboutSection />
+      <FeaturedResources />
+      <BookingPreview />
+      <UpcomingPrograms />
+      <Testimonials />
+      <Partners />
+      <LatestNews />
+  </>
 }
