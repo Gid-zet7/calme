@@ -4,6 +4,8 @@ import { type Metadata } from "next";
 import { Geist } from "next/font/google";
 
 import { TRPCReactProvider } from "@/trpc/react";
+import { KindeProvider } from "@kinde-oss/kinde-auth-nextjs";
+import { Providers } from "@/components/providers";
 
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -25,13 +27,15 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geist.variable}`}>
       <body className="flex flex-col min-h-screen">
-        <Navbar />
-        <TRPCReactProvider>
-          <main className="flex-grow pt-16">
-            {children}
-          </main>
-        </TRPCReactProvider>
-        <Footer />
+        {/* <KindeProvider> */}
+          <Navbar />
+          <Providers>
+            <main className="flex-grow pt-16">
+              {children}
+            </main>
+          </Providers>
+          <Footer />
+        {/* </KindeProvider> */}
       </body>
     </html>
   );

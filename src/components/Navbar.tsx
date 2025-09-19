@@ -2,14 +2,20 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, Heart } from "lucide-react";
+import { Menu, X, Heart, User, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-// import CalmeLogo from "../../../assets/calme-logo.png"; Adjust the path as necessary
+import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
+import {
+  RegisterLink,
+  LoginLink,
+  LogoutLink
+} from "@kinde-oss/kinde-auth-nextjs/components";
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
+  const { user, isAuthenticated } = useKindeBrowserClient();
 
   const toggleMenu = () => setIsOpen(!isOpen);
   const closeMenu = () => setIsOpen(false);
@@ -76,9 +82,24 @@ const Navbar: React.FC = () => {
               {link.label}
             </Link>
           ))}
-          {/* <Link to="/donate" className="btn-primary">
-            Donate
-          </Link> */}
+          {isAuthenticated ? (
+            <div className="flex items-center space-x-4">
+              <Link href="/book-appointment" className="btn-primary">
+                Book Appointment
+              </Link>
+              <div className="flex items-center space-x-2">
+                <User className="w-5 h-5" />
+                <span className="text-sm">{user?.given_name || user?.email}</span>
+                <LogoutLink className="text-neutral-700 hover:text-primary-600 transition-colors">
+                  <LogOut className="w-5 h-5" />
+                </LogoutLink>
+              </div>
+            </div>
+          ) : (
+            <LoginLink className="btn-primary">
+              Sign In
+            </LoginLink>
+          )}
         </div>
 
         {/* Mobile Navigation Button */}
@@ -116,13 +137,37 @@ const Navbar: React.FC = () => {
                   {link.label}
                 </Link>
               ))}
-              <Link
-                href="/donate"
-                className="btn-primary mx-4"
-                onClick={closeMenu}
-              >
-                Donate
-              </Link>
+              {isAuthenticated ? (
+                <>
+                  <Link
+                    href="/book-appointment"
+                    className="btn-primary mx-4"
+                    onClick={closeMenu}
+                  >
+                    Book Appointment
+                  </Link>
+                  <div className="mx-4 py-2 border-t border-neutral-200">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <User className="w-4 h-4" />
+                      <span className="text-sm font-medium">{user?.given_name || user?.email}</span>
+                    </div>
+                    <LogoutLink 
+                      className="flex items-center space-x-2 text-neutral-700 hover:text-primary-600 transition-colors"
+                      onClick={closeMenu}
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Sign Out</span>
+                    </LogoutLink>
+                  </div>
+                </>
+              ) : (
+                <RegisterLink 
+                  className="btn-primary mx-4"
+                  onClick={closeMenu}
+                >
+                  Sign Up
+                </RegisterLink>
+              )}
             </div>
           </motion.div>
         )}

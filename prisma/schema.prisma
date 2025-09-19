@@ -10,11 +10,272 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
+// User model for authentication
+model User {
+    id        String   @id @default(cuid())
+    kindeId   String   @unique
+    email     String   @unique
+    firstName String?
+    lastName  String?
+    imageUrl  String?
+    role      UserRole @default(USER)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Relations
+    appointments Appointment[]
+    donations   Donation[]
+    posts       Post[]
+
+    @@index([kindeId])
+    @@index([email])
+}
+
+enum UserRole {
+    USER
+    ADMIN
+    PSYCHOLOGIST
+}
+
+// Psychologist model
+model Psychologist {
+    id            String   @id @default(cuid())
+    name          String
+    specialization String
+    bio           String
+    imageUrl      String?
+    email         String   @unique
+    phone         String?
+    availability  String[] // Array of available days
+    isActive      Boolean  @default(true)
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+
+    // Relations
+    appointments Appointment[]
+
+    @@index([email])
+}
+
+// News/Articles model
+model NewsItem {
+    id        String   @id @default(cuid())
+    title     String
+    content   String
+    summary   String
+    imageUrl  String?
+    author    String
+    tags      String[] // Array of tags
+    isPublished Boolean @default(false)
+    publishedAt DateTime?
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([title])
+    @@index([isPublished])
+}
+
+// Programs/Events model
+model Program {
+    id          String      @id @default(cuid())
+    title       String
+    description String
+    content     String?
+    imageUrl    String?
+    date        DateTime
+    location    String
+    isUpcoming  Boolean     @default(true)
+    maxAttendees Int?
+    currentAttendees Int    @default(0)
+    status      ProgramStatus @default(UPCOMING)
+    videoUrl    String?
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
+
+    // Relations
+    registrations ProgramRegistration[]
+
+    @@index([date])
+    @@index([isUpcoming])
+}
+
+enum ProgramStatus {
+    UPCOMING
+    ONGOING
+    COMPLETED
+    CANCELLED
+}
+
+// Program registrations
+model ProgramRegistration {
+    id        String   @id @default(cuid())
+    programId String
+    userId    String
+    email     String
+    name      String
+    phone     String?
+    status    RegistrationStatus @default(PENDING)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Relations
+    program Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+    @@unique([programId, email])
+    @@index([programId])
+    @@index([email])
+}
+
+enum RegistrationStatus {
+    PENDING
+    CONFIRMED
+    CANCELLED
+    ATTENDED
+}
+
+// Resources model
+model Resource {
+    id          String   @id @default(cuid())
+    title       String
+    description String
+    content     String?
+    imageUrl    String?
+    downloadUrl String?
+    category    String
+    fileSize    Int?     // in bytes
+    fileType    String?  // PDF, DOC, etc.
+    isPublished Boolean  @default(true)
+    downloadCount Int    @default(0)
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    @@index([category])
+    @@index([isPublished])
+}
+
+// Appointments model
+model Appointment {
+    id            String            @id @default(cuid())
+    userId        String
+    psychologistId String
+    date          DateTime
+    duration      Int               @default(60) // in minutes
+    status        AppointmentStatus @default(PENDING)
+    notes         String?
+    meetingLink   String?           // For online appointments
+    createdAt     DateTime          @default(now())
+    updatedAt     DateTime          @updatedAt
+
+    // Relations
+    user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+    psychologist Psychologist @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
+
+    @@index([userId])
+    @@index([psychologistId])
+    @@index([date])
+}
+
+enum AppointmentStatus {
+    PENDING
+    CONFIRMED
+    CANCELLED
+    COMPLETED
+    NO_SHOW
+}
+
+// Donations model
+model Donation {
+    id            String        @id @default(cuid())
+    userId        String?
+    amount        Decimal       @db.Decimal(10, 2)
+    currency      String        @default("USD")
+    paymentMethod String
+    status        PaymentStatus @default(PENDING)
+    transactionId String?       @unique
+    donorName     String?
+    donorEmail    String?
+    isAnonymous   Boolean       @default(false)
+    message       String?
+    createdAt     DateTime      @default(now())
+    updatedAt     DateTime      @updatedAt
+
+    // Relations
+    user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+    @@index([userId])
+    @@index([status])
+}
+
+enum PaymentStatus {
+    PENDING
+    COMPLETED
+    FAILED
+    REFUNDED
+}
+
+// Contact form submissions
+model ContactSubmission {
+    id        String   @id @default(cuid())
+    name      String
+    email     String
+    phone     String?
+    subject   String
+    message   String
+    status    ContactStatus @default(NEW)
+    response  String?
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([email])
+    @@index([status])
+}
+
+enum ContactStatus {
+    NEW
+    IN_PROGRESS
+    RESOLVED
+    CLOSED
+}
+
+// Partners model
+model Partner {
+    id          String   @id @default(cuid())
+    name        String
+    description String
+    logoUrl     String?
+    websiteUrl  String?
+    isActive    Boolean  @default(true)
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    @@index([name])
+}
+
+// Testimonials model
+model Testimonial {
+    id        String   @id @default(cuid())
+    name      String
+    role      String
+    content   String
+    imageUrl  String?
+    rating    Int?     @default(5) // 1-5 stars
+    isApproved Boolean @default(false)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([isApproved])
+}
+
+// Keep the original Post model for compatibility
 model Post {
     id        Int      @id @default(autoincrement())
     name      String
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    // Relations
+    userId    String?
+    user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
     @@index([name])
 }
