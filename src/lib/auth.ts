@@ -1,32 +1,24 @@
-import { createKindeServerClient } from '@kinde-oss/kinde-auth-nextjs/server';
-import { NextRequest } from 'next/server';
+import { getKindeServerSession as sdkGetKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
 
-export const kindeClient = createKindeServerClient({
-  authDomain: process.env.KINDE_AUTH_DOMAIN!,
-  clientId: process.env.KINDE_CLIENT_ID!,
-  clientSecret: process.env.KINDE_CLIENT_SECRET!,
-  redirectURL: process.env.KINDE_REDIRECT_URL!,
-  logoutRedirectURL: process.env.KINDE_LOGOUT_REDIRECT_URL!,
-});
-
-export async function getKindeServerSession(request?: NextRequest) {
-  return kindeClient.getSession(request);
+export async function getKindeServerSession() {
+  return sdkGetKindeServerSession();
 }
 
-export async function getKindeUser(request?: NextRequest) {
-  const session = await getKindeServerSession(request);
-  return session?.user;
+export async function getKindeUser() {
+  const { getUser } = await getKindeServerSession();
+  return getUser();
 }
 
-export async function isAuthenticated(request?: NextRequest) {
-  const session = await getKindeServerSession(request);
-  return !!session;
+export async function isAuthenticated() {
+  const { isAuthenticated } = await getKindeServerSession();
+  return isAuthenticated();
 }
 
-export async function requireAuth(request?: NextRequest) {
-  const session = await getKindeServerSession(request);
-  if (!session) {
+export async function requireAuth() {
+  const { isAuthenticated, getUser } = await getKindeServerSession();
+  const authed = await isAuthenticated();
+  if (!authed) {
     throw new Error('Authentication required');
   }
-  return session;
+  return getUser();
 }

@@ -47,6 +47,25 @@ export const resourcesRouter = createTRPCRouter({
       };
     }),
 
+  // Admin list: get all resources (published and drafts)
+  getAdminList: protectedProcedure
+    .input(z.object({}))
+    .query(async ({ ctx }) => {
+      // Check if user is admin
+      const user = await ctx.db.user.findUnique({
+        where: { kindeId: ctx.session?.user?.id },
+        select: { role: true },
+      });
+
+      if (user?.role !== "ADMIN") {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+
+      return ctx.db.resource.findMany({
+        orderBy: { createdAt: "desc" },
+      });
+    }),
+
   // Get featured resources (for homepage)
   getFeatured: publicProcedure
     .input(z.object({ limit: z.number().min(1).max(10).default(3) }))

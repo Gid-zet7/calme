@@ -1,19 +1,21 @@
-'use client'
-import React, { useState } from 'react';
+"use client"
+import React, { useMemo, useState } from 'react';
 // import Layout from '../components/layout/Layout';
-import { programsData } from '@/data/programsData';
 import { Calendar, MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { api } from '@/trpc/react';
 
 const ProgramsPage: React.FC = () => {
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'past'>('all');
-  
-  const filteredPrograms = programsData.filter(program => {
-    if (filter === 'all') return true;
-    if (filter === 'upcoming') return program.isUpcoming;
-    if (filter === 'past') return !program.isUpcoming;
-    return true;
-  });
+  const { data: page } = api.programs.getAll.useQuery({ limit: 100 });
+  const programs = page?.items ?? [];
+
+  const filteredPrograms = useMemo(() => {
+    if (filter === 'all') return programs;
+    if (filter === 'upcoming') return programs.filter(p => p.isUpcoming);
+    if (filter === 'past') return programs.filter(p => !p.isUpcoming);
+    return programs;
+  }, [filter, programs]);
 
   return (
     <>
@@ -81,8 +83,8 @@ const ProgramsPage: React.FC = () => {
                   viewport={{ once: true }}
                 >
                   <div className="relative h-64">
-                    <img
-                      src={program.imageUrl}
+                      <img
+                      src={program.imageUrl ?? undefined}
                       alt={program.title}
                       className="w-full h-full object-cover"
                     />
@@ -96,7 +98,7 @@ const ProgramsPage: React.FC = () => {
                     <h3 className="text-xl font-bold mb-2 text-primary-700">{program.title}</h3>
                     <div className="flex items-center text-neutral-500 mb-3 text-sm">
                       <Calendar className="w-4 h-4 mr-1" />
-                      <span>{new Date(program.date).toLocaleDateString('en-US', { 
+                      <span>{new Date(program.date as any).toLocaleDateString('en-US', { 
                         year: 'numeric', 
                         month: 'long', 
                         day: 'numeric'

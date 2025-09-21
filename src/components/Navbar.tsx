@@ -10,12 +10,14 @@ import {
   LoginLink,
   LogoutLink
 } from "@kinde-oss/kinde-auth-nextjs/components";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
   const { user, isAuthenticated } = useKindeBrowserClient();
+  const { role } = useUserRole();
 
   const toggleMenu = () => setIsOpen(!isOpen);
   const closeMenu = () => setIsOpen(false);
@@ -87,6 +89,17 @@ const Navbar: React.FC = () => {
               <Link href="/book-appointment" className="btn-primary">
                 Book Appointment
               </Link>
+              {/* Role-based dashboard links */}
+              {role === 'ADMIN' && (
+                <Link href="/admin" className="text-neutral-700 hover:text-primary-600 transition-colors text-sm font-medium">
+                  Admin Dashboard
+                </Link>
+              )}
+              {role === 'PSYCHOLOGIST' && (
+                <Link href="/psychologist" className="text-neutral-700 hover:text-primary-600 transition-colors text-sm font-medium">
+                  My Dashboard
+                </Link>
+              )}
               <div className="flex items-center space-x-2">
                 <User className="w-5 h-5" />
                 <span className="text-sm">{user?.given_name || user?.email}</span>
@@ -146,6 +159,25 @@ const Navbar: React.FC = () => {
                   >
                     Book Appointment
                   </Link>
+                  {/* Role-based dashboard links for mobile */}
+                  {role === 'ADMIN' && (
+                    <Link
+                      href="/admin"
+                      className="mx-4 px-4 py-2 text-neutral-700 hover:text-primary-600 transition-colors"
+                      onClick={closeMenu}
+                    >
+                      Admin Dashboard
+                    </Link>
+                  )}
+                  {role === 'PSYCHOLOGIST' && (
+                    <Link
+                      href="/psychologist"
+                      className="mx-4 px-4 py-2 text-neutral-700 hover:text-primary-600 transition-colors"
+                      onClick={closeMenu}
+                    >
+                      My Dashboard
+                    </Link>
+                  )}
                   <div className="mx-4 py-2 border-t border-neutral-200">
                     <div className="flex items-center space-x-2 mb-2">
                       <User className="w-4 h-4" />

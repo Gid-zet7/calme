@@ -1,24 +1,20 @@
 'use client'
-import React, { useState } from 'react';
-// import Layout from '../components/layout/Layout';
-import { resourcesData } from '@/data/resourcesData';
+import React, { useMemo, useState } from 'react';
 import { Download, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { api } from '@/trpc/react';
 
 const ResourcesPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   
-  // Get unique categories from resources
-  const categories = ['All', ...new Set(resourcesData.map(resource => resource.category))];
+  // Fetch categories and resources from API
+  const { data: categoriesData } = api.resources.getCategories.useQuery();
+  const { data: resourcesPage } = api.resources.getAll.useQuery({ limit: 100, search: searchTerm || undefined, category: activeCategory !== 'All' ? activeCategory : undefined });
+
+  const categories = useMemo(() => ['All', ...((categoriesData ?? []) as string[])], [categoriesData]);
   
-  // Filter resources based on search term and active category
-  const filteredResources = resourcesData.filter(resource => {
-    const matchesSearch = resource.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         resource.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = activeCategory === 'All' || resource.category === activeCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredResources = resourcesPage?.items ?? [];
 
   return (
     <>
@@ -75,7 +71,10 @@ const ResourcesPage: React.FC = () => {
         <div className="container">
           {filteredResources.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredResources.map((resource, index) => (
+              {filteredResources.map((resource, index) => {
+                const imageUrl: string | undefined = resource.imageUrl ?? undefined;
+                const downloadUrl: string | undefined = resource.downloadUrl ?? undefined;
+                return (
                 <motion.div
                   key={resource.id}
                   className="card h-full flex flex-col"
@@ -86,7 +85,7 @@ const ResourcesPage: React.FC = () => {
                 >
                   <div className="h-48 overflow-hidden">
                     <img
-                      src={resource.imageUrl}
+                      src={imageUrl}
                       alt={resource.title}
                       className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                     />
@@ -99,9 +98,9 @@ const ResourcesPage: React.FC = () => {
                     </div>
                     <h3 className="text-xl font-bold mb-2 text-primary-700">{resource.title}</h3>
                     <p className="text-neutral-600 mb-4 flex-grow">{resource.description}</p>
-                    {resource.downloadUrl && (
+                    {downloadUrl && (
                       <a
-                        href={resource.downloadUrl}
+                        href={downloadUrl}
                         className="btn-primary inline-flex items-center justify-center"
                       >
                         <Download className="w-4 h-4 mr-2" />
@@ -110,7 +109,7 @@ const ResourcesPage: React.FC = () => {
                     )}
                   </div>
                 </motion.div>
-              ))}
+              )})}
             </div>
           ) : (
             <div className="text-center py-12">

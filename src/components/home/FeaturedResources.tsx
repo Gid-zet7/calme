@@ -1,13 +1,12 @@
-'use client'
+"use client"
 import React from 'react';
 import Link from 'next/link';
 import { ArrowRight, Download } from 'lucide-react';
-import { resourcesData } from '@/data/resourcesData';
 import { motion } from 'framer-motion';
+import { api } from '@/trpc/react';
 
 const FeaturedResources: React.FC = () => {
-  // Take only first 3 resources for the featured section
-  const featuredResources = resourcesData.slice(0, 3);
+  const { data: featuredResources } = api.resources.getFeatured.useQuery({ limit: 3 });
   
   return (
     <section className="py-16 bg-neutral-50">
@@ -21,7 +20,10 @@ const FeaturedResources: React.FC = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {featuredResources.map((resource, index) => (
+          {(featuredResources ?? []).map((resource, index) => {
+            const imageUrl: string | undefined = resource.imageUrl ?? undefined;
+            const downloadUrl: string | undefined = resource.downloadUrl ?? undefined;
+            return (
             <motion.div
               key={resource.id}
               className="card h-full flex flex-col"
@@ -32,7 +34,7 @@ const FeaturedResources: React.FC = () => {
             >
               <div className="h-48 overflow-hidden">
                 <img
-                  src={resource.imageUrl}
+                  src={imageUrl}
                   alt={resource.title}
                   className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                 />
@@ -46,9 +48,9 @@ const FeaturedResources: React.FC = () => {
                 <h3 className="text-xl font-bold mb-2 text-primary-700">{resource.title}</h3>
                 <p className="text-neutral-600 mb-4 flex-grow">{resource.description}</p>
                 <div className="flex justify-between items-center">
-                  {resource.downloadUrl && (
+                  {downloadUrl && (
                     <a 
-                      href={resource.downloadUrl} 
+                      href={downloadUrl} 
                       className="inline-flex items-center text-primary-600 hover:text-primary-800 transition-colors"
                     >
                       <Download className="w-4 h-4 mr-1" />
@@ -58,7 +60,7 @@ const FeaturedResources: React.FC = () => {
                 </div>
               </div>
             </motion.div>
-          ))}
+          )})}
         </div>
         
         <div className="text-center mt-10">

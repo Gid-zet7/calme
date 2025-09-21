@@ -8,6 +8,9 @@ import { donationsRouter } from "@/server/api/routers/donations";
 import { contactRouter } from "@/server/api/routers/contact";
 import { partnersRouter } from "@/server/api/routers/partners";
 import { testimonialsRouter } from "@/server/api/routers/testimonials";
+import { adminRouter } from "@/server/api/routers/admin";
+import { psychologistRouter } from "@/server/api/routers/psychologist";
+import { dashboardRouter } from "@/server/api/routers/dashboard";
 import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
 
 /**
@@ -26,6 +29,9 @@ export const appRouter = createTRPCRouter({
   contact: contactRouter,
   partners: partnersRouter,
   testimonials: testimonialsRouter,
+  admin: adminRouter,
+  psychologist: psychologistRouter,
+  dashboard: dashboardRouter,
 });
 
 // export type definition of API

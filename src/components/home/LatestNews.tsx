@@ -1,15 +1,12 @@
-'use client'
+"use client"
 import React from 'react';
 import Link from 'next/link';
 import { Calendar, ArrowRight } from 'lucide-react';
-import { newsData } from '@/data/newsData'; 
 import { motion } from 'framer-motion';
+import { api } from '@/trpc/react';
 
 const LatestNews: React.FC = () => {
-  // Take only the latest 3 news items
-  const latestNews = [...newsData].sort((a, b) => 
-    new Date(b.date).getTime() - new Date(a.date).getTime()
-  ).slice(0, 3);
+  const { data: latestNews } = api.news.getLatest.useQuery({ limit: 3 });
   
   return (
     <section className="py-16 bg-neutral-50">
@@ -22,7 +19,7 @@ const LatestNews: React.FC = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {latestNews.map((news, index) => (
+          {(latestNews ?? []).map((news, index) => (
             <motion.div
               key={news.id}
               className="card h-full flex flex-col"
@@ -33,7 +30,7 @@ const LatestNews: React.FC = () => {
             >
               <div className="h-48 overflow-hidden">
                 <img
-                  src={news.imageUrl}
+                  src={news.imageUrl ?? undefined}
                   alt={news.title}
                   className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                 />
@@ -41,7 +38,7 @@ const LatestNews: React.FC = () => {
               <div className="p-6 flex flex-col flex-grow">
                 <div className="flex items-center text-neutral-500 mb-3 text-sm">
                   <Calendar className="w-4 h-4 mr-1" />
-                  <span>{new Date(news.date).toLocaleDateString('en-US', { 
+                  <span>{new Date((news.publishedAt ?? news.createdAt) as any).toLocaleDateString('en-US', { 
                     year: 'numeric', 
                     month: 'long', 
                     day: 'numeric'

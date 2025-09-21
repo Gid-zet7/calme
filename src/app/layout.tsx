@@ -28,13 +28,13 @@ export default function RootLayout({
     <html lang="en" className={`${geist.variable}`}>
       <body className="flex flex-col min-h-screen">
         {/* <KindeProvider> */}
-          <Navbar />
           <Providers>
+            <Navbar />
             <main className="flex-grow pt-16">
               {children}
             </main>
+            <Footer />
           </Providers>
-          <Footer />
         {/* </KindeProvider> */}
       </body>
     </html>

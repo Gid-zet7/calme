@@ -1,13 +1,13 @@
-'use client'
+"use client"
 import React from 'react';
 import Link from 'next/link';
-import { psychologistsData } from '@/data/psychologistsData';
 import { ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { api } from '@/trpc/react';
 
 const BookingPreview: React.FC = () => {
-  // Show only first 3 psychologists
-  const featuredPsychologists = psychologistsData.slice(0, 3);
+  const { data: psychologists } = api.admin.getPsychologists.useQuery({});
+  const featuredPsychologists = (psychologists ?? []).slice(0, 3);
   
   return (
     <section className="py-16 bg-white">
@@ -31,7 +31,7 @@ const BookingPreview: React.FC = () => {
             >
               <div className="h-64 overflow-hidden">
                 <img
-                  src={psychologist.imageUrl}
+                  src={psychologist.imageUrl ?? undefined}
                   alt={psychologist.name}
                   className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                 />
@@ -40,19 +40,7 @@ const BookingPreview: React.FC = () => {
                 <h3 className="text-xl font-bold mb-1 text-primary-700">{psychologist.name}</h3>
                 <p className="text-secondary-600 font-medium mb-3">{psychologist.specialization}</p>
                 <p className="text-neutral-600 mb-4 flex-grow">{psychologist.bio.substring(0, 120)}...</p>
-                <div className="mt-2">
-                  <span className="text-sm font-medium text-neutral-700">Available on: </span>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {psychologist.availability.map((day: string, i: number) => (
-                      <span
-                        key={i}
-                        className="inline-block bg-neutral-100 text-neutral-700 rounded-full px-2 py-1 text-xs"
-                      >
-                        {day}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                {/* availability not shown here; keep layout concise */}
               </div>
             </motion.div>
           ))}

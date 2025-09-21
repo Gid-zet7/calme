@@ -1,11 +1,12 @@
-'use client'
+"use client"
 import React, { useState } from 'react';
-import { testimonialsData } from '@/data/testimonialsData';
 import { ChevronLeft, ChevronRight, Quote } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { api } from '@/trpc/react';
 
 const Testimonials: React.FC = () => {
   const [activeIndex, setActiveIndex] = useState(0);
+  const { data: testimonials } = api.testimonials.getAll.useQuery();
 
   const nextTestimonial = () => {
     setActiveIndex((prevIndex) => (prevIndex + 1) % testimonialsData.length);
@@ -27,7 +28,7 @@ const Testimonials: React.FC = () => {
         
         <div className="max-w-4xl mx-auto">
           <div className="relative">
-            {testimonialsData.map((testimonial, index) => (
+            {(testimonials ?? []).map((testimonial, index) => (
               <motion.div
                 key={testimonial.id}
                 className={`${index === activeIndex ? 'block' : 'hidden'}`}
@@ -47,7 +48,7 @@ const Testimonials: React.FC = () => {
                       {testimonial.imageUrl ? (
                         <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary-500 mr-4">
                           <img
-                            src={testimonial.imageUrl}
+                            src={testimonial.imageUrl ?? undefined}
                             alt={testimonial.name}
                             className="w-full h-full object-cover"
                           />
@@ -87,7 +88,7 @@ const Testimonials: React.FC = () => {
           
           {/* Dots indicators */}
           <div className="flex justify-center space-x-2 mt-6">
-            {testimonialsData.map((_, index) => (
+            {(testimonials ?? []).map((_, index) => (
               <button
                 key={index}
                 onClick={() => setActiveIndex(index)}

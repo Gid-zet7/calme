@@ -1,9 +1,11 @@
-'use client'
+"use client"
 import React from 'react';
-import { partnersData } from '@/data/partnersData';
 import { motion } from 'framer-motion';
+import { api } from '@/trpc/react';
 
 const Partners: React.FC = () => {
+  const { data: partners } = api.partners.getAll.useQuery();
+
   return (
     <section className="py-16 bg-neutral-50">
       <div className="container">
@@ -15,7 +17,7 @@ const Partners: React.FC = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {partnersData.map((partner, index) => (
+          {(partners ?? []).map((partner, index) => (
             <motion.a
               key={partner.id}
               href={partner.websiteUrl}
@@ -29,7 +31,7 @@ const Partners: React.FC = () => {
             >
               <div className="w-24 h-24 mb-4 rounded-full overflow-hidden flex items-center justify-center bg-neutral-100">
                 <img
-                  src={partner.logoUrl}
+                  src={partner.logoUrl ?? undefined}
                   alt={partner.name}
                   className="w-full h-full object-cover"
                 />

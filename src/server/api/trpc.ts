@@ -26,11 +26,13 @@ import { getKindeServerSession } from "@/lib/auth";
  * @see https://trpc.io/docs/server/context
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
-  const session = await getKindeServerSession();
+  const kindeSession = await getKindeServerSession();
+  const isAuthenticated = await kindeSession.isAuthenticated();
+  const user = isAuthenticated ? await kindeSession.getUser() : null;
   
   return {
     db,
-    session,
+    session: isAuthenticated ? { user } : null,
     ...opts,
   };
 };

@@ -1,13 +1,12 @@
-'use client'
+"use client"
 import React from 'react';
 import Link from 'next/link';
 import { Calendar, MapPin, ArrowRight } from 'lucide-react';
-import { programsData } from '@/data/programsData';
 import { motion } from 'framer-motion';
+import { api } from '@/trpc/react';
 
 const UpcomingPrograms: React.FC = () => {
-  // Filter upcoming programs
-  const upcomingPrograms = programsData.filter(program => program.isUpcoming);
+  const { data: upcomingPrograms } = api.programs.getUpcoming.useQuery({ limit: 4 });
   
   return (
     <section className="py-16 bg-white">
@@ -20,7 +19,7 @@ const UpcomingPrograms: React.FC = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {upcomingPrograms.map((program, index) => (
+          {(upcomingPrograms ?? []).map((program, index) => (
             <motion.div
               key={program.id}
               className="card overflow-hidden flex flex-col md:flex-row"
@@ -31,7 +30,7 @@ const UpcomingPrograms: React.FC = () => {
             >
               <div className="md:w-2/5 h-48 md:h-auto">
                 <img
-                  src={program.imageUrl}
+                  src={program.imageUrl ?? undefined}
                   alt={program.title}
                   className="w-full h-full object-cover"
                 />
@@ -40,7 +39,7 @@ const UpcomingPrograms: React.FC = () => {
                 <h3 className="text-xl font-bold mb-2 text-primary-700">{program.title}</h3>
                 <div className="flex items-center text-neutral-500 mb-3 text-sm">
                   <Calendar className="w-4 h-4 mr-1" />
-                  <span>{new Date(program.date).toLocaleDateString('en-US', { 
+                  <span>{new Date(program.date as any).toLocaleDateString('en-US', { 
                     year: 'numeric', 
                     month: 'long', 
                     day: 'numeric'

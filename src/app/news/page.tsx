@@ -1,23 +1,17 @@
-'use client'
-import React, { useState } from 'react';
+"use client"
+import React, { useMemo, useState } from 'react';
 // import Layout from '../components/layout/Layout';
-import { newsData } from '@/data/newsData';
 import { Calendar, User, Tag, Search, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { api } from '@/trpc/react';
 
 const NewsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Get all unique tags from news items
-  const allTags = Array.from(new Set(newsData.flatMap(item => item.tags)));
-  
-  // Filter news based on search term
-  const filteredNews = newsData.filter(item => 
-    item.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    item.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const { data: page } = api.news.getAll.useQuery({ limit: 20, search: searchTerm || undefined });
+  const items = page?.items ?? [];
+  const allTags = useMemo(() => Array.from(new Set(items.flatMap(i => i.tags))), [items]);
+  const filteredNews = items;
 
   return (
     <>
@@ -67,7 +61,7 @@ const NewsPage: React.FC = () => {
                     >
                       <div className="mb-4 rounded-lg overflow-hidden">
                         <img
-                          src={item.imageUrl}
+                          src={item.imageUrl ?? undefined}
                           alt={item.title}
                           className="w-full h-64 object-cover"
                         />
@@ -76,7 +70,7 @@ const NewsPage: React.FC = () => {
                       <div className="flex flex-wrap gap-4 mb-4 text-sm text-neutral-500">
                         <div className="flex items-center">
                           <Calendar className="w-4 h-4 mr-1" />
-                          <span>{new Date(item.date).toLocaleDateString('en-US', { 
+                          <span>{new Date((item.publishedAt ?? item.createdAt) as any).toLocaleDateString('en-US', { 
                             year: 'numeric', 
                             month: 'long', 
                             day: 'numeric'
@@ -89,7 +83,7 @@ const NewsPage: React.FC = () => {
                       </div>
                       <p className="text-neutral-600 mb-4">{item.summary}</p>
                       <div className="flex flex-wrap gap-2 mb-4">
-                        {item.tags.map((tag, idx) => (
+                        {(item.tags || []).map((tag, idx) => (
                           <span
                             key={idx}
                             className="inline-flex items-center bg-primary-50 text-primary-700 px-3 py-1 rounded-full text-xs font-medium"
