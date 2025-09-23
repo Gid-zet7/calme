@@ -11,7 +11,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "Cal-me - Your Mental Health Is Our Priority",
+  title: "Calme - Your Mental Health Is Our Priority",
   description: "Calme provides accessible mental health resources, professional support, and community programs to help you navigate life's challenges and thrive.",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
