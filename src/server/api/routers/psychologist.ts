@@ -1,7 +1,25 @@
 import { z } from 'zod';
-import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc';
+import { createTRPCRouter, protectedProcedure, publicProcedure } from '@/server/api/trpc';
 
 export const psychologistRouter = createTRPCRouter({
+  // Public: list active psychologists (for homepage)
+  getPublic: publicProcedure
+    .input(z.object({ limit: z.number().min(1).max(12).default(3) }))
+    .query(async ({ ctx, input }) => {
+      return ctx.db.psychologist.findMany({
+        where: { isActive: true },
+        take: input.limit,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          name: true,
+          specialization: true,
+          bio: true,
+          imageUrl: true,
+          availability: true,
+        },
+      });
+    }),
   // Get dashboard statistics
   getStats: protectedProcedure
     .input(z.object({}))

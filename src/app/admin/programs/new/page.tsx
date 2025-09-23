@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Save } from 'lucide-react';
 import Link from 'next/link';
+import { api } from '@/trpc/react';
 
 export default function NewProgramPage() {
   const router = useRouter();
@@ -17,18 +18,21 @@ export default function NewProgramPage() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    status: 'UPCOMING',
-    startDate: '',
-    endDate: '',
+    status: 'UPCOMING' as 'UPCOMING' | 'COMPLETED' | 'CANCELLED' | 'ONGOING',
+    date: '',
     maxParticipants: '',
     location: '',
-    duration: '',
-    price: '',
-    psychologistId: '',
-    category: '',
-    requirements: '',
-    objectives: ''
+    content: '',
+    imageUrl: '',
+    videoUrl: '',
+    leadPsychologistIds: [] as string[],
+    attendeeUserIds: [] as string[],
   });
+
+  // Fetch psychologists and users from the database
+  const { data: psychologists, isLoading: isPsychologistsLoading, error: psychologistsError } = api.admin.getPsychologists.useQuery({});
+  const { data: users } = api.admin.getUsers.useQuery({});
+  const createProgram = api.programs.create.useMutation();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -42,15 +46,37 @@ export default function NewProgramPage() {
     setLoading(true);
 
     try {
-      // TODO: Replace with actual tRPC call
-      console.log('Creating program:', formData);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      // Prepare payload for programs.create (matches prisma schema)
+      const payload = {
+        title: formData.title,
+        description: formData.description,
+        content: formData.content || undefined,
+        imageUrl: formData.imageUrl || undefined,
+        date: new Date(formData.date),
+        location: formData.location,
+        isUpcoming: formData.status === 'UPCOMING',
+        maxAttendees: formData.maxParticipants ? Number(formData.maxParticipants) : undefined,
+        videoUrl: formData.videoUrl || undefined,
+        leadPsychologistIds: formData.leadPsychologistIds,
+        attendeeUserIds: formData.attendeeUserIds,
+      };
+
+      // Call the tRPC mutation to create the program
+      await new Promise<void>((resolve, reject) => {
+        createProgram.mutate(payload, {
+          onSuccess: () => {
+            resolve();
+          },
+          onError: (err) => {
+            reject(err);
+          }
+        });
+      });
+
       router.push('/admin/programs');
     } catch (error) {
       console.error('Error creating program:', error);
+      // Optionally, show a user-facing error here
     } finally {
       setLoading(false);
     }
@@ -63,24 +89,7 @@ export default function NewProgramPage() {
     { value: 'CANCELLED', label: 'Cancelled' }
   ];
 
-  const categoryOptions = [
-    { value: 'ANXIETY', label: 'Anxiety Management' },
-    { value: 'DEPRESSION', label: 'Depression Support' },
-    { value: 'MINDFULNESS', label: 'Mindfulness' },
-    { value: 'PARENTING', label: 'Parenting Support' },
-    { value: 'TRAUMA', label: 'Trauma Recovery' },
-    { value: 'STRESS', label: 'Stress Management' },
-    { value: 'RELATIONSHIPS', label: 'Relationship Therapy' },
-    { value: 'OTHER', label: 'Other' }
-  ];
-
-  // Mock psychologists data
-  const psychologists = [
-    { id: '1', name: 'Dr. Sarah Johnson', specialization: 'Adolescent Psychology' },
-    { id: '2', name: 'Dr. Michael Chen', specialization: 'Anxiety Disorders' },
-    { id: '3', name: 'Dr. Emily Rodriguez', specialization: 'Family Therapy' },
-    { id: '4', name: 'Dr. David Wilson', specialization: 'Trauma Recovery' }
-  ];
+  // Category removed from Program schema
 
   return (
     <div className="space-y-6">
@@ -134,22 +143,6 @@ export default function NewProgramPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="category">Category *</Label>
-                  <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categoryOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
                   <Label htmlFor="status">Status *</Label>
                   <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
                     <SelectTrigger>
@@ -183,38 +176,18 @@ export default function NewProgramPage() {
                   <Input
                     id="startDate"
                     type="date"
-                    value={formData.startDate}
-                    onChange={(e) => handleInputChange('startDate', e.target.value)}
+                      value={formData.date}
+                    onChange={(e) => handleInputChange('date', e.target.value)}
                     required
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="endDate">End Date *</Label>
-                  <Input
-                    id="endDate"
-                    type="date"
-                    value={formData.endDate}
-                    onChange={(e) => handleInputChange('endDate', e.target.value)}
-                    required
-                  />
-                </div>
+               
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="duration">Duration *</Label>
-                  <Input
-                    id="duration"
-                    value={formData.duration}
-                    onChange={(e) => handleInputChange('duration', e.target.value)}
-                    placeholder="e.g., 4 weeks, 8 sessions"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="maxParticipants">Max Participants *</Label>
+                  <Label htmlFor="maxParticipants">Max Attendees</Label>
                   <Input
                     id="maxParticipants"
                     type="number"
@@ -222,7 +195,6 @@ export default function NewProgramPage() {
                     onChange={(e) => handleInputChange('maxParticipants', e.target.value)}
                     placeholder="20"
                     min="1"
-                    required
                   />
                 </div>
               </div>
@@ -238,19 +210,7 @@ export default function NewProgramPage() {
                 />
               </div>
 
-              <div>
-                <Label htmlFor="price">Price (USD) *</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  value={formData.price}
-                  onChange={(e) => handleInputChange('price', e.target.value)}
-                  placeholder="150"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
+              
             </CardContent>
           </Card>
         </div>
@@ -265,41 +225,96 @@ export default function NewProgramPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="psychologistId">Lead Psychologist *</Label>
-              <Select value={formData.psychologistId} onValueChange={(value) => handleInputChange('psychologistId', value)}>
+              <Label htmlFor="leadPsychologists">Lead Psychologists</Label>
+              <Select
+                value={undefined}
+                onValueChange={(value) => setFormData(p => ({ ...p, leadPsychologistIds: Array.from(new Set([...(p.leadPsychologistIds ?? []), value])) }))}
+                disabled={isPsychologistsLoading || !!psychologistsError}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select psychologist" />
+                  <SelectValue placeholder={isPsychologistsLoading ? "Loading..." : "Add lead psychologist"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {psychologists.map((psychologist) => (
-                    <SelectItem key={psychologist.id} value={psychologist.id}>
-                      {psychologist.name} - {psychologist.specialization}
+                  {isPsychologistsLoading && (
+                    <div className="px-4 py-2 text-sm text-gray-500">Loading...</div>
+                  )}
+                  {psychologistsError && (
+                    <div className="px-4 py-2 text-sm text-red-500">Error loading psychologists</div>
+                  )}
+                  {psychologists &&
+                    psychologists.length > 0 &&
+                    psychologists.map((psychologist) => (
+                      <SelectItem key={psychologist.id} value={psychologist.id}>
+                        {psychologist.name}
+                        {psychologist.specialization ? ` - ${psychologist.specialization}` : ''}
+                      </SelectItem>
+                    ))}
+                  {psychologists && psychologists.length === 0 && !isPsychologistsLoading && (
+                    <div className="px-4 py-2 text-sm text-gray-500">No psychologists found</div>
+                  )}
+                </SelectContent>
+              </Select>
+              {formData.leadPsychologistIds.length > 0 && (
+                <div className="mt-2 text-sm text-gray-700">
+                  Selected: {formData.leadPsychologistIds.length}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="content">Content</Label>
+              <Textarea
+                id="content"
+                value={formData.content}
+                onChange={(e) => handleInputChange('content', e.target.value)}
+                placeholder="Long description or details"
+                rows={4}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="imageUrl">Image URL</Label>
+                <Input
+                  id="imageUrl"
+                  value={formData.imageUrl}
+                  onChange={(e) => handleInputChange('imageUrl', e.target.value)}
+                  placeholder="https://..."
+                />
+              </div>
+              <div>
+                <Label htmlFor="videoUrl">Video URL</Label>
+                <Input
+                  id="videoUrl"
+                  value={formData.videoUrl}
+                  onChange={(e) => handleInputChange('videoUrl', e.target.value)}
+                  placeholder="https://..."
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="attendees">Attendees (Users)</Label>
+              <Select
+                value={undefined}
+                onValueChange={(value) => setFormData(p => ({ ...p, attendeeUserIds: Array.from(new Set([...(p.attendeeUserIds ?? []), value])) }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Add attendee" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(users ?? []).map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {(u.firstName ?? '') + ' ' + (u.lastName ?? '')} ({u.email})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="objectives">Learning Objectives</Label>
-              <Textarea
-                id="objectives"
-                value={formData.objectives}
-                onChange={(e) => handleInputChange('objectives', e.target.value)}
-                placeholder="What will participants learn or achieve?"
-                rows={3}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="requirements">Requirements</Label>
-              <Textarea
-                id="requirements"
-                value={formData.requirements}
-                onChange={(e) => handleInputChange('requirements', e.target.value)}
-                placeholder="Any prerequisites or requirements for participants"
-                rows={3}
-              />
+              {formData.attendeeUserIds.length > 0 && (
+                <div className="mt-2 text-sm text-gray-700">
+                  Selected: {formData.attendeeUserIds.length}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

@@ -166,6 +166,8 @@ export const programsRouter = createTRPCRouter({
         isUpcoming: z.boolean().default(true),
         maxAttendees: z.number().optional(),
         videoUrl: z.string().optional(),
+        leadPsychologistIds: z.array(z.string()).optional(),
+        attendeeUserIds: z.array(z.string()).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -180,7 +182,23 @@ export const programsRouter = createTRPCRouter({
       }
 
       return ctx.db.program.create({
-        data: input,
+        data: ({
+          title: input.title,
+          description: input.description,
+          content: input.content,
+          imageUrl: input.imageUrl,
+          date: input.date,
+          location: input.location,
+          isUpcoming: input.isUpcoming,
+          maxAttendees: input.maxAttendees,
+          videoUrl: input.videoUrl,
+          leadPsychologists: input.leadPsychologistIds?.length ? {
+            connect: input.leadPsychologistIds.map(id => ({ id }))
+          } : undefined,
+          attendees: input.attendeeUserIds?.length ? {
+            connect: input.attendeeUserIds.map(id => ({ id }))
+          } : undefined,
+        }) as any,
       });
     }),
 
@@ -199,6 +217,8 @@ export const programsRouter = createTRPCRouter({
         maxAttendees: z.number().optional(),
         videoUrl: z.string().optional(),
         status: z.enum(["UPCOMING", "ONGOING", "COMPLETED", "CANCELLED"]).optional(),
+        leadPsychologistIds: z.array(z.string()).optional(),
+        attendeeUserIds: z.array(z.string()).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -216,7 +236,15 @@ export const programsRouter = createTRPCRouter({
 
       return ctx.db.program.update({
         where: { id },
-        data: updateData,
+        data: ({
+          ...updateData,
+          leadPsychologists: input.leadPsychologistIds ? {
+            set: input.leadPsychologistIds.map(pid => ({ id: pid }))
+          } : undefined,
+          attendees: input.attendeeUserIds ? {
+            set: input.attendeeUserIds.map(uid => ({ id: uid }))
+          } : undefined,
+        }) as any,
       });
     }),
 

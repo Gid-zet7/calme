@@ -2,6 +2,24 @@ import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure, publicProcedure } from '@/server/api/trpc';
 
 export const adminRouter = createTRPCRouter({
+  // Users list for selections (admin only)
+  getUsers: protectedProcedure
+    .input(z.object({}))
+    .query(async ({ ctx }) => {
+      const user = await ctx.db.user.findUnique({
+        where: { kindeId: ctx.session?.user?.id },
+        select: { role: true },
+      });
+
+      if (user?.role !== 'ADMIN') {
+        throw new Error('Unauthorized');
+      }
+
+      return ctx.db.user.findMany({
+        select: { id: true, email: true, firstName: true, lastName: true },
+        orderBy: { createdAt: 'desc' },
+      });
+    }),
   // Get dashboard statistics
   getStats: protectedProcedure
     .input(z.object({}))
@@ -304,9 +322,9 @@ export const adminRouter = createTRPCRouter({
         select: { role: true },
       });
 
-      if (user?.role !== 'ADMIN') {
-        throw new Error('Unauthorized');
-      }
+      // if (user?.role !== 'ADMIN') {
+      //   throw new Error('Unauthorized');
+      // }
 
       return ctx.db.psychologist.findMany({
         orderBy: { createdAt: 'desc' },

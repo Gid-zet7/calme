@@ -6,8 +6,8 @@ import { motion } from 'framer-motion';
 import { api } from '@/trpc/react';
 
 const BookingPreview: React.FC = () => {
-  const { data: psychologists } = api.admin.getPsychologists.useQuery({});
-  const featuredPsychologists = (psychologists ?? []).slice(0, 3);
+  const { data: psychologists } = api.psychologist.getPublic.useQuery({ limit: 3 });
+  const featuredPsychologists = psychologists ?? [];
   
   return (
     <section className="py-16 bg-white">

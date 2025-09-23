@@ -115,7 +115,7 @@ export default function ProgramsPage() {
               <div className="space-y-2 text-sm">
                 <div className="flex items-center text-gray-600">
                   <Calendar className="mr-2 h-4 w-4" />
-                  {formatDate(program.startDate)} - {formatDate(program.endDate)}
+                  {program.date ? formatDate(program.date) : 'No date set'}
                 </div>
                 {/* duration not in schema; omit */}
                 <div className="flex items-center text-gray-600">
