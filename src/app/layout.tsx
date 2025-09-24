@@ -7,8 +7,8 @@ import { TRPCReactProvider } from "@/trpc/react";
 import { KindeProvider } from "@kinde-oss/kinde-auth-nextjs";
 import { Providers } from "@/components/providers";
 
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import TopbarRouter from "./_components/TopbarRouter";
+import FooterRouter from "./_components/FooterRouter";
 
 export const metadata: Metadata = {
   title: "Calme - Your Mental Health Is Our Priority",
@@ -29,11 +29,11 @@ export default function RootLayout({
       <body className="flex flex-col min-h-screen">
         {/* <KindeProvider> */}
           <Providers>
-            <Navbar />
+            <TopbarRouter />
             <main className="flex-grow pt-16">
               {children}
             </main>
-            <Footer />
+            <FooterRouter />
           </Providers>
         {/* </KindeProvider> */}
       </body>
