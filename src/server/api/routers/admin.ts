@@ -265,7 +265,14 @@ export const adminRouter = createTRPCRouter({
       }
 
       return ctx.db.newsItem.create({
-        data: input,
+        data: {
+          title: input.title,
+          content: input.content,
+          summary: input.excerpt,
+          imageUrl: input.imageUrl,
+          isPublished: input.isPublished,
+          tags: input.tags ?? [],
+        },
       });
     }),
 
@@ -289,10 +296,13 @@ export const adminRouter = createTRPCRouter({
         throw new Error('Unauthorized');
       }
 
-      const { id, ...data } = input;
+      const { id, excerpt, ...rest } = input;
       return ctx.db.newsItem.update({
         where: { id },
-        data,
+        data: {
+          ...rest,
+          ...(excerpt ? { summary: excerpt } : {}),
+        },
       });
     }),
 
@@ -333,10 +343,11 @@ export const adminRouter = createTRPCRouter({
 
   createPsychologist: protectedProcedure
     .input(z.object({
+      userId: z.string(),
       name: z.string().min(1),
       specialization: z.string().min(1),
       bio: z.string().min(1),
-      email: z.string().email(),
+      email: z.string().email().optional(),
       phone: z.string().optional(),
       imageUrl: z.string().optional(),
       availability: z.array(z.string()),
@@ -352,8 +363,24 @@ export const adminRouter = createTRPCRouter({
         throw new Error('Unauthorized');
       }
 
+      // Derive email from linked user if not provided
+      const linkedUser = await ctx.db.user.findUnique({ where: { id: input.userId } });
+      if (!linkedUser) {
+        throw new Error('Linked user not found');
+      }
+
       return ctx.db.psychologist.create({
-        data: input,
+        data: {
+          userId: input.userId,
+          name: input.name,
+          specialization: input.specialization,
+          bio: input.bio,
+          email: input.email ?? linkedUser.email,
+          phone: input.phone,
+          imageUrl: input.imageUrl,
+          availability: input.availability,
+          isActive: input.isActive,
+        },
       });
     }),
 

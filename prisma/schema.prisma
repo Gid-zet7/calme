@@ -59,6 +59,10 @@ model Psychologist {
     // Programs this psychologist leads
     leadingPrograms Program[]
 
+    // Link to User account
+    userId       String   @unique
+    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
     @@index([email])
 }
 

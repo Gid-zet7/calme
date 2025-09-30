@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/trpc/react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 export default function NewPsychologistPage() {
   const router = useRouter();
   const utils = api.useUtils();
+  const { data: users } = api.admin.getUsers.useQuery({});
   const createPsychologist = api.admin.createPsychologist.useMutation({
     onSuccess: async () => {
       await utils.admin.getPsychologists.invalidate();
@@ -17,10 +18,10 @@ export default function NewPsychologistPage() {
     },
   });
 
+  const [userId, setUserId] = useState("");
   const [name, setName] = useState("");
   const [specialization, setSpecialization] = useState("");
   const [bio, setBio] = useState("");
-  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [availability, setAvailability] = useState("");
@@ -31,7 +32,7 @@ export default function NewPsychologistPage() {
     e.preventDefault();
     setError(null);
 
-    if (!name || !specialization || !bio || !email) {
+    if (!userId || !name || !specialization || !bio) {
       setError("Please fill in all required fields.");
       return;
     }
@@ -42,10 +43,10 @@ export default function NewPsychologistPage() {
       .filter(Boolean);
 
     createPsychologist.mutate({
+      userId,
       name,
       specialization,
       bio,
-      email,
       phone: phone || undefined,
       imageUrl: imageUrl || undefined,
       availability: avail,
@@ -57,6 +58,21 @@ export default function NewPsychologistPage() {
     <div className="max-w-3xl">
       <h1 className="mb-6 text-2xl font-semibold">Add Psychologist</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="mb-1 block text-sm font-medium">Link User Account *</label>
+          <select
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={userId}
+            onChange={(e) => setUserId(e.target.value)}
+          >
+            <option value="">Select a user</option>
+            {(users ?? []).map((u: any) => (
+              <option key={u.id} value={u.id}>
+                {u.email} {u.firstName || u.lastName ? `(${u.firstName ?? ''} ${u.lastName ?? ''})` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
         <div>
           <label className="mb-1 block text-sm font-medium">Full Name *</label>
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Dr. Jane Doe" />
@@ -70,10 +86,6 @@ export default function NewPsychologistPage() {
           <Textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Short professional bio" className="min-h-[140px]" />
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-sm font-medium">Email *</label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" />
-          </div>
           <div>
             <label className="mb-1 block text-sm font-medium">Phone</label>
             <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 555 555 5555" />

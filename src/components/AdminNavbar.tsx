@@ -21,7 +21,7 @@ export default function AdminNavbar() {
          
         </div>
         <div className="flex items-center gap-2">
-          <DropdownMenuUser user={user?.picture} />
+          <DropdownMenuUser user={user} />
         </div>
       </div>
     </header>

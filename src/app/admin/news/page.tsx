@@ -16,6 +16,8 @@ import {
 import Link from 'next/link';
 import { api } from '@/trpc/react';
 
+const PUBLIC_URL = process.env.NEXT_PUBLIC_URL;
+
 export default function NewsPage() {
   const { data: news } = api.admin.getNews.useQuery({});
   const utils = api.useUtils();
@@ -86,7 +88,7 @@ export default function NewsPage() {
           <h1 className="text-3xl font-bold text-gray-900">News & Articles</h1>
           <p className="text-gray-600">Manage your news articles and blog posts</p>
         </div>
-        <Link href="/admin/news/new">
+        <Link href={`${PUBLIC_URL}/admin/news/new`}>
           <Button>
             <Plus className="mr-2 h-4 w-4" />
             Write Article
@@ -154,16 +156,16 @@ export default function NewsPage() {
 
                     {/* Actions */}
                     <div className="flex items-center space-x-2 ml-4">
-                      <Link href={`/news/${article.id}`}>
+                      <Link href={`${PUBLIC_URL}/admin/news/${article.id}`}>
                         <Button variant="outline" size="sm">
                           <Eye className="h-4 w-4" />
                         </Button>
                       </Link>
-                      <Link href={`/admin/news/${article.id}/edit`}>
+                      {/* <Link href={`${PUBLIC_URL}/admin/news/${article.id}/edit`}>
                         <Button variant="outline" size="sm">
                           <Edit className="h-4 w-4" />
                         </Button>
-                      </Link>
+                      </Link> */}
                       <Button onClick={() => deleteMutation.mutate({ id: article.id })} variant="outline" size="sm" className="text-red-600 hover:text-red-700">
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -185,7 +187,7 @@ export default function NewsPage() {
             <p className="text-gray-500 text-center mb-4">
               Start sharing knowledge and updates with your community.
             </p>
-            <Link href="/admin/news/new">
+            <Link href={`${PUBLIC_URL}/admin/news/new`}>
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
                 Write Article

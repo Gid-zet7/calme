@@ -86,7 +86,7 @@ export default function ProgramsPage() {
           <p className="text-gray-600">Manage your mental health programs</p>
         </div>
         <Link href="/admin/programs/new">
-          <Button>
+          <Button className='cursor-pointer'>
             <Plus className="mr-2 h-4 w-4" />
             Create Program
           </Button>
