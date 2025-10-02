@@ -1,17 +1,20 @@
 'use client'
 import React from 'react';
 import Link from 'next/link';
-import Threads from '../threads';
+import Ballpit from '../Ballpit';
 import { Button } from '@/components/ui/button';
 import AvatarUsers from '@/components/avatar-users';
 
 const Hero: React.FC = () => {
   return (
     <div style={{ width: '100%', height: '600px', position: 'relative' }}>
-        <Threads
-          amplitude={1}
-          distance={0}
-          enableMouseInteraction={true}
+        <Ballpit
+         count={200}
+         gravity={0.7}
+         friction={0.8}
+         wallBounce={0.95}
+          followCursor={true}
+          className="absolute inset-0"
         />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/10 via-background/20 to-background" />
         <div className="absolute inset-0 flex items-center justify-center px-4">

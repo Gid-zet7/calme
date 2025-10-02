@@ -33,7 +33,7 @@ const AboutPage: React.FC = () => {
             >
               <h2 className="text-3xl font-bold mb-6 text-primary-700">Our Mission</h2>
               <p className="text-neutral-600 mb-4">
-                At Cal-me, our mission is to make quality mental health care accessible to everyone, 
+                At Calme, our mission is to make quality mental health care accessible to everyone, 
                 regardless of background or circumstances. We believe that mental wellbeing is a 
                 fundamental right, not a privilege.
               </p>
@@ -56,7 +56,7 @@ const AboutPage: React.FC = () => {
                 support they need without fear or hesitation.
               </p>
               <p className="text-neutral-600">
-                Cal-me aims to be at the forefront of this transformation, continuously innovating 
+                Calme aims to be at the forefront of this transformation, continuously innovating 
                 and expanding our services to meet the evolving mental health needs of our community.
               </p>
             </motion.div>
@@ -76,7 +76,7 @@ const AboutPage: React.FC = () => {
               viewport={{ once: true }}
             >
               <p className="text-neutral-600 mb-4">
-                Cal-me was founded in 2015 by Dr. Sarah Johnson, a clinical psychologist who recognized the 
+                Calme was founded in 2015 by Dr. Sarah Johnson, a clinical psychologist who recognized the 
                 significant gap in accessible mental health services in our community. After years of working 
                 in traditional mental health settings, Dr. Johnson observed how financial constraints, 
                 stigma, and lack of resources prevented many individuals from receiving the care they needed.
@@ -170,7 +170,7 @@ const AboutPage: React.FC = () => {
             <h2 className="text-3xl font-bold mb-6 text-white">Join Our Mission</h2>
             <p className="text-primary-100 mb-8">
               Whether you're seeking mental health support, looking to volunteer, or want to partner with us, 
-              we welcome you to the Cal-me community.
+              we welcome you to the Calme community.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <a href="/contact" className="btn bg-white text-primary-700 hover:bg-neutral-100">
