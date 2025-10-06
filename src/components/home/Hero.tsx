@@ -1,21 +1,14 @@
 'use client'
 import React from 'react';
 import Link from 'next/link';
-import Ballpit from '../Ballpit';
+import Iridescence from '../Iridescence';
 import { Button } from '@/components/ui/button';
 import AvatarUsers from '@/components/avatar-users';
 
 const Hero: React.FC = () => {
   return (
     <div style={{ width: '100%', height: '600px', position: 'relative' }}>
-        <Ballpit
-         count={200}
-         gravity={0.7}
-         friction={0.8}
-         wallBounce={0.95}
-          followCursor={true}
-          className="absolute inset-0"
-        />
+        <Iridescence color={[1, 1, 1]} mouseReact={false} amplitude={0.1} speed={1.0} className="absolute inset-0" />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/10 via-background/20 to-background" />
         <div className="absolute inset-0 flex items-center justify-center px-4">
           <div className="max-w-3xl text-center space-y-6">
