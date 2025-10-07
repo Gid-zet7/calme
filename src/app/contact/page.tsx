@@ -3,16 +3,21 @@ import React from 'react';
 // import Layout from '../components/layout/Layout';
 import { MapPin, Phone, Mail, Clock, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Iridescence from '@/components/Iridescence';
 
 const ContactPage: React.FC = () => {
   return (
     <>
       {/* Hero Section */}
-      <section className="pt-24 pb-16 bg-gradient-to-b from-primary-700 to-primary-800 text-white">
-        <div className="container">
-          <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6 text-white">Contact Us</h1>
-            <p className="text-lg text-primary-100">
+      <section style={{ width: '100%', height: '600px', position: 'relative' }}>
+        <Iridescence color={[1, 1, 1]} mouseReact={false} amplitude={0.1} speed={1.0} className="absolute inset-0" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/10 via-background/20 to-background" />
+        <div className="absolute inset-0 flex items-center justify-center px-4">
+          <div className="max-w-3xl text-center space-y-6">
+            <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-foreground">
+              Contact Us
+            </h1>
+            <p className="text-base md:text-lg text-muted-foreground">
               Have questions or want to get involved? We'd love to hear from you.
             </p>
           </div>

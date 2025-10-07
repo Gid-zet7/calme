@@ -9,11 +9,11 @@ const Testimonials: React.FC = () => {
   const { data: testimonials } = api.testimonials.getAll.useQuery();
 
   const nextTestimonial = () => {
-    setActiveIndex((prevIndex) => (prevIndex + 1) % testimonialsData.length);
+    setActiveIndex((prevIndex) => (prevIndex + 1) % testimonials.length);
   };
 
   const prevTestimonial = () => {
-    setActiveIndex((prevIndex) => (prevIndex - 1 + testimonialsData.length) % testimonialsData.length);
+    setActiveIndex((prevIndex) => (prevIndex - 1 + testimonials.length) % testimonials.length);
   };
 
   return (

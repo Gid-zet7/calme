@@ -23,7 +23,7 @@ export default function AvatarUsers() {
       </div>
 
       <p className="text-xs text-muted-foreground me-1.5">
-        Trusted by <span className="font-semibold text-foreground">100K+</span> useers.
+        Trusted by <span className="font-semibold text-foreground">100K+</span> users.
       </p>
     </div>
   );
