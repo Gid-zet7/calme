@@ -1,8 +1,49 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure, protectedProcedure } from "@/server/api/trpc";
 import { TRPCError } from "@trpc/server";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { env } from "@/env";
 
 export const resourcesRouter = createTRPCRouter({
+  // Get S3 presigned upload URL (admin only)
+  getPresignedUploadUrl: protectedProcedure
+    .input(
+      z.object({
+        fileName: z.string().min(1),
+        fileType: z.string().min(1),
+        contentLength: z.number().min(1).max(50 * 1024 * 1024).optional(), // up to 50MB default
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const user = await ctx.db.user.findUnique({
+        where: { kindeId: ctx.session?.user?.id },
+        select: { role: true },
+      });
+      if (user?.role !== "ADMIN") throw new TRPCError({ code: "FORBIDDEN" });
+
+      const s3 = new S3Client({
+        region: env.AWS_REGION,
+        credentials: {
+          accessKeyId: env.AWS_ACCESS_KEY_ID,
+          secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+        },
+      });
+
+      const objectKey = `resources/${Date.now()}-${input.fileName}`;
+      const command = new PutObjectCommand({
+        Bucket: env.S3_BUCKET_NAME,
+        Key: objectKey,
+        ContentType: input.fileType,
+      });
+      const url = await getSignedUrl(s3, command, { expiresIn: 60 * 5 }); // 5 minutes
+
+      const publicUrl = env.S3_PUBLIC_URL_BASE
+        ? `${env.S3_PUBLIC_URL_BASE}/${objectKey}`
+        : `https://${env.S3_BUCKET_NAME}.s3.${env.AWS_REGION}.amazonaws.com/${objectKey}`;
+
+      return { uploadUrl: url, objectKey, publicUrl };
+    }),
   // Get all published resources
   getAll: publicProcedure
     .input(

@@ -1,14 +1,25 @@
 'use client'
 import React, { useState } from 'react';
-// import Layout from '../components/layout/Layout';
-import { Heart, CreditCard, Calendar, Check } from 'lucide-react';
+import { Heart, CreditCard, Calendar, Check, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { usePaystackPayment } from 'react-paystack';
+import { api } from '@/trpc/react';
 
 const DonatePage: React.FC = () => {
   const [donationAmount, setDonationAmount] = useState<number | string>(50);
   const [isMonthly, setIsMonthly] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [donorInfo, setDonorInfo] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    message: '',
+    isAnonymous: false,
+  });
   
   const predefinedAmounts = [25, 50, 100, 250];
+  
+  const initializePayment = api.donations.initializePayment.useMutation();
   
   const handleAmountClick = (amount: number) => {
     setDonationAmount(amount);
@@ -17,6 +28,47 @@ const DonatePage: React.FC = () => {
   const handleCustomAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setDonationAmount(value === '' ? '' : parseFloat(value));
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target;
+    setDonorInfo(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
+    }));
+  };
+
+  const handleDonation = async () => {
+    if (!donorInfo.email || !donorInfo.firstName || !donorInfo.lastName) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    if (!donationAmount || donationAmount === '') {
+      alert('Please enter a donation amount');
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      const result = await initializePayment.mutateAsync({
+        amount: typeof donationAmount === 'string' ? parseFloat(donationAmount) : donationAmount,
+        email: donorInfo.email,
+        donorName: `${donorInfo.firstName} ${donorInfo.lastName}`,
+        isAnonymous: donorInfo.isAnonymous,
+        message: donorInfo.message,
+        isMonthly,
+      });
+
+      // Redirect to Paystack payment page
+      window.location.href = result.authorizationUrl;
+    } catch (error) {
+      console.error('Payment initialization failed:', error);
+      alert('Failed to initialize payment. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -120,6 +172,8 @@ const DonatePage: React.FC = () => {
                         type="text"
                         id="firstName"
                         name="firstName"
+                        value={donorInfo.firstName}
+                        onChange={handleInputChange}
                         required
                         className="w-full px-4 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                       />
@@ -132,6 +186,8 @@ const DonatePage: React.FC = () => {
                         type="text"
                         id="lastName"
                         name="lastName"
+                        value={donorInfo.lastName}
+                        onChange={handleInputChange}
                         required
                         className="w-full px-4 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                       />
@@ -145,70 +201,66 @@ const DonatePage: React.FC = () => {
                       type="email"
                       id="email"
                       name="email"
+                      value={donorInfo.email}
+                      onChange={handleInputChange}
                       required
                       className="w-full px-4 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     />
                   </div>
                   <div>
-                    <label htmlFor="cardNumber" className="block text-sm font-medium text-neutral-700 mb-1">
-                      Card Number *
+                    <label htmlFor="message" className="block text-sm font-medium text-neutral-700 mb-1">
+                      Message (Optional)
                     </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        id="cardNumber"
-                        name="cardNumber"
-                        placeholder="1234 5678 9012 3456"
-                        required
-                        className="w-full pl-10 pr-4 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      />
-                      <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
-                    </div>
+                    <textarea
+                      id="message"
+                      name="message"
+                      value={donorInfo.message}
+                      onChange={handleInputChange}
+                      rows={3}
+                      placeholder="Share why you're supporting our mission..."
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="expiryDate" className="block text-sm font-medium text-neutral-700 mb-1">
-                        Expiry Date *
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          id="expiryDate"
-                          name="expiryDate"
-                          placeholder="MM/YY"
-                          required
-                          className="w-full pl-10 pr-4 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                        />
-                        <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
-                      </div>
-                    </div>
-                    <div>
-                      <label htmlFor="cvv" className="block text-sm font-medium text-neutral-700 mb-1">
-                        CVV *
-                      </label>
-                      <input
-                        type="text"
-                        id="cvv"
-                        name="cvv"
-                        placeholder="123"
-                        required
-                        className="w-full px-4 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      />
-                    </div>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="isAnonymous"
+                      name="isAnonymous"
+                      checked={donorInfo.isAnonymous}
+                      onChange={handleInputChange}
+                      className="mr-2 h-4 w-4 text-primary-600 focus:ring-primary-500 border-neutral-300 rounded"
+                    />
+                    <label htmlFor="isAnonymous" className="text-sm text-neutral-700">
+                      Make this donation anonymous
+                    </label>
                   </div>
                 </div>
               </div>
               
               {/* Submit Button */}
-              <button type="submit" className="btn-primary w-full py-3 text-lg">
-                {isMonthly ? 'Donate Monthly' : 'Donate Now'} {donationAmount !== '' && `$${donationAmount}`}
+              <button 
+                type="button" 
+                onClick={handleDonation}
+                disabled={isProcessing}
+                className="btn-primary w-full py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    {isMonthly ? 'Donate Monthly' : 'Donate Now'} {donationAmount !== '' && `$${donationAmount}`}
+                  </>
+                )}
               </button>
               
               {/* Secure Payment Note */}
               <p className="text-center text-neutral-500 text-sm mt-4">
                 <span className="inline-flex items-center">
                   <Check className="w-4 h-4 mr-1 text-success-500" />
-                  Secure payment
+                  Secure payment powered by Paystack
                 </span>
               </p>
             </motion.div>

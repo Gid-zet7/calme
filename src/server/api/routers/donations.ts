@@ -1,9 +1,146 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure, protectedProcedure } from "@/server/api/trpc";
 import { TRPCError } from "@trpc/server";
+import { Paystack } from "@paystack/paystack-sdk";
+import { env } from "@/env";
 
 export const donationsRouter = createTRPCRouter({
-  // Create donation
+  // Initialize Paystack payment
+  initializePayment: publicProcedure
+    .input(
+      z.object({
+        amount: z.number().min(1),
+        email: z.string().email(),
+        currency: z.string().default("USD"),
+        donorName: z.string().optional(),
+        isAnonymous: z.boolean().default(false),
+        message: z.string().optional(),
+        isMonthly: z.boolean().default(false),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const paystack = new Paystack(env.PAYSTACK_SECRET_KEY);
+      const kindeUser = ctx.session?.user;
+      let userId: string | undefined;
+
+      if (kindeUser) {
+        const user = await ctx.db.user.findUnique({
+          where: { kindeId: kindeUser.id },
+        });
+        userId = user?.id;
+      }
+
+      // Convert amount to kobo (Paystack's smallest currency unit)
+      const amountInKobo = Math.round(input.amount * 100);
+
+      try {
+        const response = await paystack.transaction.initialize({
+          amount: amountInKobo,
+          email: input.email,
+          currency: input.currency,
+          reference: `calme_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          callback_url: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/donate/success`,
+          metadata: {
+            donorName: input.donorName,
+            isAnonymous: input.isAnonymous,
+            message: input.message,
+            isMonthly: input.isMonthly,
+            userId: userId,
+          },
+        });
+
+        if (response.status) {
+          // Create donation record with PENDING status
+          const donation = await ctx.db.donation.create({
+            data: {
+              amount: input.amount,
+              currency: input.currency,
+              paymentMethod: "Paystack",
+              donorName: input.donorName,
+              donorEmail: input.email,
+              isAnonymous: input.isAnonymous,
+              message: input.message,
+              status: "PENDING",
+              transactionId: response.data.reference,
+              userId,
+            },
+          });
+
+          return {
+            authorizationUrl: response.data.authorization_url,
+            reference: response.data.reference,
+            donationId: donation.id,
+          };
+        } else {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Failed to initialize payment",
+          });
+        }
+      } catch (error) {
+        console.error("Paystack initialization error:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to initialize payment",
+        });
+      }
+    }),
+
+  // Verify Paystack payment
+  verifyPayment: publicProcedure
+    .input(z.object({ reference: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const paystack = new Paystack(env.PAYSTACK_SECRET_KEY);
+
+      try {
+        const response = await paystack.transaction.verify(input.reference);
+
+        if (response.status) {
+          const transaction = response.data;
+          
+          // Find the donation record
+          const donation = await ctx.db.donation.findFirst({
+            where: { transactionId: input.reference },
+          });
+
+          if (!donation) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "Donation record not found",
+            });
+          }
+
+          // Update donation status based on payment status
+          const status = transaction.status === "success" ? "COMPLETED" : "FAILED";
+
+          const updatedDonation = await ctx.db.donation.update({
+            where: { id: donation.id },
+            data: {
+              status,
+            },
+          });
+
+          return {
+            success: transaction.status === "success",
+            donation: updatedDonation,
+            transaction,
+          };
+        } else {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Payment verification failed",
+          });
+        }
+      } catch (error) {
+        console.error("Paystack verification error:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to verify payment",
+        });
+      }
+    }),
+
+  // Create donation (legacy - kept for backward compatibility)
   createDonation: publicProcedure
     .input(
       z.object({

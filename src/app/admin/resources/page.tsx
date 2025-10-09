@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
   Plus, 
   Edit, 
@@ -15,6 +17,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { api } from '@/trpc/react';
+import TableUpload from '@/components/table-upload';
+import type { FileWithPreview } from '@/hooks/use-file-upload';
 
 export default function ResourcesPage() {
   const { data: resources, isLoading } = api.resources.getAdminList.useQuery({});
@@ -24,6 +28,18 @@ export default function ResourcesPage() {
       utils.resources.getAdminList.invalidate({});
     }
   });
+  const presignMutation = api.resources.getPresignedUploadUrl.useMutation();
+  const createMutation = api.resources.create.useMutation({
+    onSuccess: () => utils.resources.getAdminList.invalidate({})
+  });
+  
+  // Form state for new resource
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('GENERAL');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+  const [selectedFiles, setSelectedFiles] = useState<FileWithPreview[]>([]);
 
   const getCategoryColor = (category: string) => {
     switch (category) {
@@ -65,6 +81,80 @@ export default function ResourcesPage() {
     });
   };
 
+  // Handle file selection
+  const handleFilesChange = (files: FileWithPreview[]) => {
+    setSelectedFiles(files);
+  };
+
+  // Handle file upload to S3
+  const handleFileUpload = async () => {
+    if (selectedFiles.length === 0) {
+      alert('Please select files to upload');
+      return;
+    }
+    
+    setIsUploading(true);
+    
+    try {
+      for (const fileWithPreview of selectedFiles) {
+        const file = fileWithPreview.file;
+        
+        if (file instanceof File) {
+          console.log('Uploading file:', file.name, file.size, file.type);
+          
+          // Get presigned URL
+          const presigned = await presignMutation.mutateAsync({
+            fileName: file.name,
+            fileType: file.type,
+            contentLength: file.size
+          });
+
+          console.log('Got presigned URL:', presigned);
+
+          // Upload to S3
+          const response = await fetch(presigned.uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': file.type },
+            body: file
+          });
+
+          console.log('S3 upload response:', response.status, response.statusText);
+
+          if (!response.ok) {
+            throw new Error(`Upload failed: ${response.statusText}`);
+          }
+
+          // Create resource in database
+          const resource = await createMutation.mutateAsync({
+            title: title || file.name,
+            description: description || 'Uploaded resource',
+            category: category || 'GENERAL',
+            downloadUrl: presigned.publicUrl,
+            fileSize: file.size,
+            fileType: file.type?.toUpperCase() || 'FILE',
+            isPublished: true,
+          });
+
+          console.log('Created resource:', resource);
+        }
+      }
+      
+      // Reset form
+      setTitle('');
+      setDescription('');
+      setCategory('GENERAL');
+      setSelectedFiles([]);
+      
+      alert('Files uploaded successfully!');
+      
+    } catch (error) {
+      console.error('Upload failed:', error);
+      alert(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -102,13 +192,72 @@ export default function ResourcesPage() {
           <h1 className="text-3xl font-bold text-gray-900">Resources</h1>
           <p className="text-gray-600">Manage your mental health resources and materials</p>
         </div>
-        <Link href="/admin/resources/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Resource
-          </Button>
-        </Link>
       </div>
+
+      {/* Upload Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Upload New Resource</CardTitle>
+          <CardDescription>
+            Upload files to AWS S3 and create resource entries in the database
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Resource Metadata Form */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Title</Label>
+              <Input
+                id="title"
+                placeholder="Resource title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Input
+                id="description"
+                placeholder="Resource description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <Input
+                id="category"
+                placeholder="e.g., GENERAL, ANXIETY, MINDFULNESS"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* File Upload Component */}
+          <TableUpload
+            maxFiles={5}
+            maxSize={50 * 1024 * 1024} // 50MB
+            accept=".pdf,.doc,.docx,.txt,.zip,.xlsx,.xls,.pptx,.ppt"
+            multiple={true}
+            simulateUpload={false}
+            onFilesChange={handleFilesChange}
+            className="w-full"
+          />
+
+          {/* Upload Button */}
+          <div className="flex justify-end">
+            <Button 
+              onClick={handleFileUpload}
+              disabled={selectedFiles.length === 0 || isUploading}
+              className="min-w-[120px]"
+              variant="primary"
+            >
+              {isUploading ? 'Uploading...' : `Upload ${selectedFiles.length} file${selectedFiles.length !== 1 ? 's' : ''}`}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Resources Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
