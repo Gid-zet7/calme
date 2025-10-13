@@ -19,14 +19,14 @@ export const POST = async (request: Request) => {
     // Prepare the request payload according to Paystack documentation
     const payload = {
       email,
-      amount: amount * 100, // Convert to kobo
+      amount: amount * 100, // Convert to cedis
       currency: "GHS",
       callback_url: `${SERVER_URL || 'http://localhost:3000'}/donate/success`,
     };
 
     console.log("Initializing Paystack payment with payload:", {
       ...payload,
-      amount: `${amount * 100} kobo (${amount} GHS)`,
+      amount: `${amount * 100} cedis (${amount} GHS)`,
     });
 
     const response = await axios.post(
