@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure, protectedProcedure } from "@/server/api/trpc";
 import { TRPCError } from "@trpc/server";
-import { Paystack } from "@paystack/paystack-sdk";
+import axios from "axios";
 import { env } from "@/env";
 
 export const donationsRouter = createTRPCRouter({
@@ -19,56 +19,75 @@ export const donationsRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const paystack = new Paystack(env.PAYSTACK_SECRET_KEY);
-      const kindeUser = ctx.session?.user;
-      let userId: string | undefined;
+      // Public donation - no authentication required
+      let userId: string | undefined = undefined;
 
-      if (kindeUser) {
-        const user = await ctx.db.user.findUnique({
-          where: { kindeId: kindeUser.id },
+      // Check if Paystack is configured
+      if (!env.PAYSTACK_SECRET_KEY) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Paystack is not configured. Please set PAYSTACK_SECRET_KEY in your environment variables.",
         });
-        userId = user?.id;
       }
 
       // Convert amount to kobo (Paystack's smallest currency unit)
       const amountInKobo = Math.round(input.amount * 100);
+      const reference = `calme_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
       try {
-        const response = await paystack.transaction.initialize({
-          amount: amountInKobo,
+        // Prepare the request payload according to Paystack documentation
+        const payload = {
           email: input.email,
-          currency: input.currency,
-          reference: `calme_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          amount: amountInKobo,
+          currency: "GHS",
+          reference,
           callback_url: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/donate/success`,
           metadata: {
-            donorName: input.donorName,
+            donorName: input.donorName || "Anonymous",
             isAnonymous: input.isAnonymous,
-            message: input.message,
+            message: input.message || "",
             isMonthly: input.isMonthly,
-            userId: userId,
+            userId: userId || null,
+            donationType: input.isMonthly ? "monthly" : "one-time",
           },
+        };
+
+        console.log("Initializing Paystack payment with payload:", {
+          ...payload,
+          amount: `${amountInKobo} kobo (${input.amount} ${input.currency})`,
         });
 
-        if (response.status) {
+        const response = await axios.post(
+          "https://api.paystack.co/transaction/initialize",
+          payload,
+          {
+            headers: {
+              Authorization: `Bearer ${env.PAYSTACK_SECRET_KEY}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (response.data.status) {
           // Create donation record with PENDING status
           const donation = await ctx.db.donation.create({
             data: {
               amount: input.amount,
               currency: input.currency,
-              paymentMethod: "Paystack",
+              paymentMethod: "paystack",
               donorName: input.donorName,
               donorEmail: input.email,
               isAnonymous: input.isAnonymous,
               message: input.message,
               status: "PENDING",
-              transactionId: response.data.reference,
+              transactionId: response.data.data.reference,
               userId,
             },
           });
 
           return {
-            authorizationUrl: response.data.authorization_url,
-            reference: response.data.reference,
+            authorizationUrl: response.data.data.authorization_url,
+            reference: response.data.data.reference,
             donationId: donation.id,
           };
         } else {
@@ -77,11 +96,39 @@ export const donationsRouter = createTRPCRouter({
             message: "Failed to initialize payment",
           });
         }
-      } catch (error) {
-        console.error("Paystack initialization error:", error);
+      } catch (error: any) {
+        console.error("Paystack initialization error:", {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          message: error.message,
+        });
+        
+        if (error.response?.status === 403) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Invalid Paystack API key. Please check your PAYSTACK_SECRET_KEY in your environment variables.",
+          });
+        }
+        
+        if (error.response?.status === 400) {
+          const errorMessage = error.response?.data?.message || "Invalid request parameters";
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Paystack validation error: ${errorMessage}`,
+          });
+        }
+        
+        if (error.response?.status === 401) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Paystack authentication failed. Please verify your API key.",
+          });
+        }
+        
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to initialize payment",
+          message: `Failed to initialize payment: ${error.response?.data?.message || error.message}`,
         });
       }
     }),
@@ -90,13 +137,29 @@ export const donationsRouter = createTRPCRouter({
   verifyPayment: publicProcedure
     .input(z.object({ reference: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const paystack = new Paystack(env.PAYSTACK_SECRET_KEY);
+      // Check if Paystack is configured
+      if (!env.PAYSTACK_SECRET_KEY) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Paystack is not configured. Please set PAYSTACK_SECRET_KEY in your environment variables.",
+        });
+      }
 
       try {
-        const response = await paystack.transaction.verify(input.reference);
+        console.log(`Verifying Paystack payment with reference: ${input.reference}`);
+        
+        const response = await axios.get(
+          `https://api.paystack.co/transaction/verify/${input.reference}`,
+          {
+            headers: {
+              Authorization: `Bearer ${env.PAYSTACK_SECRET_KEY}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
-        if (response.status) {
-          const transaction = response.data;
+        if (response.data.status) {
+          const transaction = response.data.data;
           
           // Find the donation record
           const donation = await ctx.db.donation.findFirst({
@@ -131,11 +194,31 @@ export const donationsRouter = createTRPCRouter({
             message: "Payment verification failed",
           });
         }
-      } catch (error) {
-        console.error("Paystack verification error:", error);
+      } catch (error: any) {
+        console.error("Paystack verification error:", {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          message: error.message,
+        });
+        
+        if (error.response?.status === 403) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Invalid Paystack API key. Please check your PAYSTACK_SECRET_KEY.",
+          });
+        }
+        
+        if (error.response?.status === 404) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Transaction reference not found. Please check the reference and try again.",
+          });
+        }
+        
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to verify payment",
+          message: `Failed to verify payment: ${error.response?.data?.message || error.message}`,
         });
       }
     }),
@@ -154,15 +237,8 @@ export const donationsRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const kindeUser = ctx.session?.user;
-      let userId: string | undefined;
-
-      if (kindeUser) {
-        const user = await ctx.db.user.findUnique({
-          where: { kindeId: kindeUser.id },
-        });
-        userId = user?.id;
-      }
+      // Public donation - no authentication required
+      let userId: string | undefined = undefined;
 
       return ctx.db.donation.create({
         data: {

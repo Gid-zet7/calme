@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Heart, CreditCard, Calendar, Check, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { usePaystackPayment } from 'react-paystack';
+// Removed react-paystack import - using direct API calls instead
 import { api } from '@/trpc/react';
 
 const DonatePage: React.FC = () => {

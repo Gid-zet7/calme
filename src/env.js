@@ -7,16 +7,16 @@ export const env = createEnv({
    * isn't built with invalid env vars.
    */
   server: {
-    DATABASE_URL: z.string().url(),
+    DATABASE_URL: z.string().url().optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
-    AWS_ACCESS_KEY_ID: z.string().min(1),
-    AWS_SECRET_ACCESS_KEY: z.string().min(1),
-    AWS_REGION: z.string().min(1),
-    S3_BUCKET_NAME: z.string().min(1),
+    AWS_ACCESS_KEY_ID: z.string().min(1).optional(),
+    AWS_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+    AWS_REGION: z.string().min(1).optional(),
+    S3_BUCKET_NAME: z.string().min(1).optional(),
     S3_PUBLIC_URL_BASE: z.string().url().optional(),
-    PAYSTACK_SECRET_KEY: z.string().min(1),
+    PAYSTACK_SECRET_KEY: z.string().min(1).optional(),
   },
 
   /**
@@ -25,7 +25,7 @@ export const env = createEnv({
    * `NEXT_PUBLIC_`.
    */
   client: {
-    NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY: z.string().min(1),
+    NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY: z.string().min(1).optional(),
   },
 
   /**
