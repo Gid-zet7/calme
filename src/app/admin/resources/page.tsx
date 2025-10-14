@@ -114,14 +114,19 @@ export default function ResourcesPage() {
           // Upload to S3
           const response = await fetch(presigned.uploadUrl, {
             method: 'PUT',
-            headers: { 'Content-Type': file.type },
+            headers: { 
+              'Content-Type': file.type,
+              // Don't set Content-Length - let the browser handle it
+            },
             body: file
           });
 
           console.log('S3 upload response:', response.status, response.statusText);
 
           if (!response.ok) {
-            throw new Error(`Upload failed: ${response.statusText}`);
+            const errorText = await response.text();
+            console.error('S3 upload error details:', errorText);
+            throw new Error(`Upload failed: ${response.status} ${response.statusText} - ${errorText}`);
           }
 
           // Create resource in database
@@ -278,7 +283,7 @@ export default function ResourcesPage() {
                   <Badge className={getCategoryColor(resource.category)}>
                     {resource.category}
                   </Badge>
-                  <Badge variant={resource.isPublished ? "default" : "secondary"}>
+                  <Badge variant={resource.isPublished ? "primary" : "secondary"}>
                     {resource.isPublished ? 'Published' : 'Draft'}
                   </Badge>
                 </div>

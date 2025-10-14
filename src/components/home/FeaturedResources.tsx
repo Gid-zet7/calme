@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowRight, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api } from '@/trpc/react';
+import { getProxyUrl } from '@/lib/s3-utils';
 
 const FeaturedResources: React.FC = () => {
   const { data: featuredResources } = api.resources.getFeatured.useQuery({ limit: 3 });
@@ -22,7 +23,7 @@ const FeaturedResources: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {(featuredResources ?? []).map((resource, index) => {
             const imageUrl: string | undefined = resource.imageUrl ?? undefined;
-            const downloadUrl: string | undefined = resource.downloadUrl ?? undefined;
+            const downloadUrl: string | undefined = getProxyUrl(resource.downloadUrl);
             return (
             <motion.div
               key={resource.id}

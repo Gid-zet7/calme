@@ -16,33 +16,93 @@ export const resourcesRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      // Check if S3 is configured
+      if (!env.AWS_ACCESS_KEY_ID || !env.AWS_SECRET_ACCESS_KEY || !env.S3_BUCKET_NAME || !env.AWS_REGION) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "S3 is not properly configured. Please check your environment variables.",
+        });
+      }
+
       const user = await ctx.db.user.findUnique({
         where: { kindeId: ctx.session?.user?.id },
         select: { role: true },
       });
       if (user?.role !== "ADMIN") throw new TRPCError({ code: "FORBIDDEN" });
 
-      const s3 = new S3Client({
-        region: env.AWS_REGION,
-        credentials: {
-          accessKeyId: env.AWS_ACCESS_KEY_ID,
-          secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
-        },
-      });
+      try {
+        const s3 = new S3Client({
+          region: env.AWS_REGION,
+          credentials: {
+            accessKeyId: env.AWS_ACCESS_KEY_ID,
+            secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+          },
+        });
 
-      const objectKey = `resources/${Date.now()}-${input.fileName}`;
-      const command = new PutObjectCommand({
-        Bucket: env.S3_BUCKET_NAME,
-        Key: objectKey,
-        ContentType: input.fileType,
-      });
-      const url = await getSignedUrl(s3, command, { expiresIn: 60 * 5 }); // 5 minutes
+        // Sanitize filename to avoid issues - be more conservative
+        const sanitizedFileName = input.fileName
+          .replace(/[^a-zA-Z0-9.-]/g, '_')
+          .replace(/_+/g, '_') // Replace multiple underscores with single
+          .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
+        
+        const objectKey = `resources/${Date.now()}-${sanitizedFileName}`;
+        
+        const command = new PutObjectCommand({
+          Bucket: env.S3_BUCKET_NAME,
+          Key: objectKey,
+          ContentType: input.fileType,
+          // Don't include ContentLength in presigned URL - let the client set it
+          // Simplify metadata to avoid encoding issues
+          Metadata: {
+            'original-filename': input.fileName.replace(/[^a-zA-Z0-9.-]/g, '_'),
+            'upload-timestamp': Date.now().toString(),
+          },
+        });
 
-      const publicUrl = env.S3_PUBLIC_URL_BASE
-        ? `${env.S3_PUBLIC_URL_BASE}/${objectKey}`
-        : `https://${env.S3_BUCKET_NAME}.s3.${env.AWS_REGION}.amazonaws.com/${objectKey}`;
+        console.log('Generating presigned URL for:', {
+          bucket: env.S3_BUCKET_NAME,
+          key: objectKey,
+          contentType: input.fileType,
+          contentLength: input.contentLength,
+        });
 
-      return { uploadUrl: url, objectKey, publicUrl };
+        const url = await getSignedUrl(s3, command, { expiresIn: 60 * 5 }); // 5 minutes
+
+        // Use proxy endpoint to avoid CORS issues
+        const publicUrl = `/api/proxy-file?key=${encodeURIComponent(objectKey)}`;
+
+        console.log('Generated presigned URL successfully');
+
+        return { uploadUrl: url, objectKey, publicUrl };
+      } catch (error: any) {
+        console.error('S3 presigned URL generation error:', error);
+        
+        if (error.name === 'NoSuchBucket') {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `S3 bucket '${env.S3_BUCKET_NAME}' does not exist. Please check your S3 configuration.`,
+          });
+        }
+        
+        if (error.name === 'InvalidAccessKeyId') {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Invalid AWS access key. Please check your AWS_ACCESS_KEY_ID.",
+          });
+        }
+        
+        if (error.name === 'SignatureDoesNotMatch') {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Invalid AWS secret key. Please check your AWS_SECRET_ACCESS_KEY.",
+          });
+        }
+        
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Failed to generate upload URL: ${error.message}`,
+        });
+      }
     }),
   // Get all published resources
   getAll: publicProcedure

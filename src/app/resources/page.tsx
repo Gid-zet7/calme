@@ -4,6 +4,7 @@ import { Download, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api } from '@/trpc/react';
 import Iridescence from '@/components/Iridescence';
+import { getProxyUrl } from '@/lib/s3-utils';
 
 const ResourcesPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -78,7 +79,7 @@ const ResourcesPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredResources.map((resource, index) => {
                 const imageUrl: string | undefined = resource.imageUrl ?? undefined;
-                const downloadUrl: string | undefined = resource.downloadUrl ?? undefined;
+                const downloadUrl: string | undefined = getProxyUrl(resource.downloadUrl);
                 return (
                 <motion.div
                   key={resource.id}
